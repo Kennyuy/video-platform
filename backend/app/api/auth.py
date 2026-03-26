@@ -91,7 +91,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return UserLoginResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserResponse.from_orm(user),
+        user=UserResponse.model_validate(user),
         daily_login_reward=daily_login_reward,
         coins_earned=coins_earned
     )

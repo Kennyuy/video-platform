@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #3B82F6;
+    --primary-dark: #60A5FA;
+    --bg-light: #FFFFFF;
+    --bg-dark: #0F172A;
+    --text-light: #1F2937;
+    --text-dark: #F3F4F6;
+    --border-light: #E5E7EB;
+    --border-dark: #334155;
+  }
+
+  body {
+    @apply bg-white dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white dark:bg-slate-900 rounded-lg shadow-sm dark:shadow-md border border-gray-200 dark:border-slate-700 transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply hover:shadow-lg dark:hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-500 cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-lg transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200;
+  }
+}

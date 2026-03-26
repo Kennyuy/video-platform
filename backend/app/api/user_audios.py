@@ -1,5 +1,6 @@
 import os
 import uuid
+import subprocess
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
 from sqlalchemy.orm import Session
@@ -14,7 +15,27 @@ router = APIRouter(prefix="/api/user/audios", tags=["用户-音频管理"])
 
 
 # 支持的音频格式
-ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'wma']
+ALLOWED_AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'wma', 'aiff', 'aif']
+
+# 需要转换为 MP3 的格式（浏览器不支持直接播放）
+NEEDS_CONVERSION = ['aiff', 'aif', 'flac', 'wma']
+
+
+def convert_to_mp3(input_path: str) -> str:
+    """将音频文件转换为 MP3 格式"""
+    output_path = input_path.rsplit('.', 1)[0] + '.mp3'
+    try:
+        subprocess.run(
+            ['ffmpeg', '-i', input_path, '-y', '-codec:a', 'libmp3lame', '-qscale:a', '2', output_path],
+            capture_output=True,
+            check=True
+        )
+        # 删除原文件
+        os.remove(input_path)
+        return output_path
+    except Exception as e:
+        print(f"音频转换失败: {e}")
+        return input_path
 
 
 async def save_upload_file(upload_file: UploadFile, directory: str, filename: Optional[str] = None) -> str:
@@ -76,6 +97,14 @@ async def upload_audio(
     # 保存音频文件
     audio_url = await save_upload_file(audio_file, os.path.join(settings.UPLOAD_DIR, "audios"))
 
+    # 如果需要转换格式（AIFF/AIF/FLAC/WMA -> MP3）
+    if file_extension in NEEDS_CONVERSION:
+        audio_file_path = os.path.join(settings.UPLOAD_DIR, "audios", os.path.basename(audio_url))
+        converted_path = convert_to_mp3(audio_file_path)
+        if converted_path != audio_file_path:
+            # 转换成功，更新 URL
+            audio_url = f"/uploads/audios/{os.path.basename(converted_path)}"
+
     # 保存封面文件（如果有）
     cover_url = None
     if cover_file:
@@ -123,6 +152,7 @@ async def add_audio_by_url(
     description: Optional[str] = Form(None),
     category_id: Optional[int] = Form(None),
     cover_url: Optional[str] = Form(None),
+    cover_file: Optional[UploadFile] = File(None),
     visibility: str = Form("public"),  # public 或 private
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -144,11 +174,22 @@ async def add_audio_by_url(
                 detail="分类不存在"
             )
 
+    # 处理封面文件上传
+    final_cover_url = cover_url
+    if cover_file:
+        cover_extension = cover_file.filename.split('.')[-1].lower()
+        if cover_extension not in settings.allowed_image_extensions_list:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"不支持的图片类型。支持的类型: {', '.join(settings.allowed_image_extensions_list)}"
+            )
+        final_cover_url = await save_upload_file(cover_file, os.path.join(settings.UPLOAD_DIR, "covers"))
+
     # 创建音频记录
     audio = Audio(
         title=title,
         description=description,
-        cover_url=cover_url,
+        cover_url=final_cover_url,
         audio_url=audio_url,
         audio_source=AudioSource.URL,
         category_id=category_id,
@@ -169,6 +210,7 @@ async def get_my_audios(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
+    visibility: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -179,6 +221,10 @@ async def get_my_audios(
     # 状态筛选
     if status:
         query = query.filter(Audio.status == status)
+
+    # 可见性筛选
+    if visibility:
+        query = query.filter(Audio.visibility == visibility)
 
     # 搜索标题
     if search:
@@ -211,6 +257,7 @@ async def update_my_audio(
     description: Optional[str] = Form(None),
     category_id: Optional[int] = Form(None),
     cover_url: Optional[str] = Form(None),
+    cover_file: Optional[UploadFile] = File(None),
     status: Optional[str] = Form(None),
     visibility: Optional[str] = Form(None),  # public 或 private
     current_user: User = Depends(get_current_user),
@@ -237,8 +284,19 @@ async def update_my_audio(
                 detail="分类不存在"
             )
         audio.category_id = category_id
-    if cover_url is not None:
+
+    # 处理封面文件上传
+    if cover_file:
+        cover_extension = cover_file.filename.split('.')[-1].lower()
+        if cover_extension not in settings.allowed_image_extensions_list:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"不支持的图片类型。支持的类型: {', '.join(settings.allowed_image_extensions_list)}"
+            )
+        audio.cover_url = await save_upload_file(cover_file, os.path.join(settings.UPLOAD_DIR, "covers"))
+    elif cover_url is not None:
         audio.cover_url = cover_url
+
     if status is not None:
         # 验证状态值
         if status not in [AudioStatus.DRAFT.value, AudioStatus.PUBLISHED.value, AudioStatus.ARCHIVED.value]:

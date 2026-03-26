@@ -33,3 +33,21 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Uploads (user generated content)
+backend/uploads/

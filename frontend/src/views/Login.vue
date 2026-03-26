@@ -1,131 +1,101 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-card">
-      <div class="login-header">
-        <el-icon :size="48" color="#409EFF"><VideoPlay /></el-icon>
-        <h2>登录</h2>
-      </div>
+  <div class="min-h-screen bg-gradient-to-br from-blue-600 to-blue-400 dark:from-blue-900 dark:to-blue-700 flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+      <!-- Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-lg shadow-xl p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+          <div class="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">登录</h1>
+          <p class="text-gray-600 dark:text-gray-400 mt-2">欢迎回到 VideoHub</p>
+        </div>
 
-      <el-form ref="formRef" :model="form" :rules="rules" @submit.prevent="handleLogin">
-        <el-form-item prop="username">
-          <el-input
-            v-model="form.username"
-            placeholder="用户名"
-            :prefix-icon="User"
-            size="large"
-          />
-        </el-form-item>
+        <!-- Form -->
+        <form @submit.prevent="handleLogin" class="space-y-4">
+          <!-- Username -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">用户名</label>
+            <input
+              v-model="form.username"
+              type="text"
+              placeholder="输入用户名"
+              class="input-field"
+              required
+            />
+          </div>
 
-        <el-form-item prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            placeholder="密码"
-            :prefix-icon="Lock"
-            size="large"
-            show-password
-          />
-        </el-form-item>
+          <!-- Password -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">密码</label>
+            <input
+              v-model="form.password"
+              type="password"
+              placeholder="输入密码"
+              class="input-field"
+              required
+            />
+          </div>
 
-        <el-form-item>
-          <el-button
-            type="primary"
-            size="large"
-            :loading="loading"
-            native-type="submit"
-            style="width: 100%"
+          <!-- Error Message -->
+          <div v-if="error" class="p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg text-sm">
+            {{ error }}
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            :disabled="loading"
+            class="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors"
           >
-            登录
-          </el-button>
-        </el-form-item>
-      </el-form>
+            {{ loading ? '登录中...' : '登录' }}
+          </button>
+        </form>
 
-      <div class="login-footer">
-        还没有账号？
-        <router-link to="/register">立即注册</router-link>
+        <!-- Footer -->
+        <div class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+          还没有账号？
+          <router-link to="/register" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold">
+            立即注册
+          </router-link>
+        </div>
       </div>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoPlay, User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
-import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const formRef = ref<FormInstance>()
-const loading = ref(false)
-
-const form = reactive({
+const form = ref({
   username: '',
   password: ''
 })
-
-const rules: FormRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-}
+const loading = ref(false)
+const error = ref('')
 
 const handleLogin = async () => {
-  if (!formRef.value) return
-
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
-
-    loading.value = true
-    const success = await userStore.login(form.username, form.password)
-    loading.value = false
-
-    if (success) {
+  error.value = ''
+  loading.value = true
+  try {
+    const result = await userStore.login(form.value.username, form.value.password)
+    if (result.success) {
       router.push('/')
+    } else {
+      error.value = '用户名或密码错误'
     }
-  })
+  } catch (err: any) {
+    error.value = err.response?.data?.detail || '登录失败'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
-
-<style scoped lang="scss">
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 400px;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
-
-  h2 {
-    margin: 16px 0 0;
-    color: #333;
-  }
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: 16px;
-  color: #666;
-
-  a {
-    color: var(--el-color-primary);
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-}
-</style>

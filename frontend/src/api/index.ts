@@ -79,6 +79,20 @@ export const videoApi = {
   // 删除视频
   deleteVideo: (id: number) => {
     return request.delete<{ message: string }>(`/admin/videos/${id}`)
+  },
+
+  // 用户上传视频
+  uploadUserVideo: async (formData: FormData) => {
+    return request.post<Video>('/user/videos/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+  },
+
+  // 用户添加视频链接
+  addUserVideoByUrl: (formData: FormData) => {
+    return request.post<Video>('/user/videos/url', formData)
   }
 }
 
@@ -206,16 +220,8 @@ export const audioApi = {
 
 // 用户音频管理 API
 export const userAudioApi = {
-  // 上传音频
-  uploadAudio: async (form: AudioUploadForm) => {
-    const formData = new FormData()
-    formData.append('title', form.title)
-    if (form.description) formData.append('description', form.description)
-    if (form.category_id) formData.append('category_id', form.category_id.toString())
-    if (form.visibility) formData.append('visibility', form.visibility)
-    if (form.audio_file) formData.append('audio_file', form.audio_file)
-    if (form.cover_file) formData.append('cover_file', form.cover_file)
-
+  // 上传音频文件
+  uploadAudio: async (formData: FormData) => {
     return request.post<Audio>('/user/audios/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -224,15 +230,7 @@ export const userAudioApi = {
   },
 
   // 添加音频链接
-  addAudioByURL: (form: AudioUploadForm) => {
-    const formData = new FormData()
-    formData.append('title', form.title)
-    formData.append('audio_url', form.audio_url || '')
-    if (form.description) formData.append('description', form.description)
-    if (form.category_id) formData.append('category_id', form.category_id.toString())
-    if (form.visibility) formData.append('visibility', form.visibility)
-    if (form.cover_url) formData.append('cover_url', form.cover_url)
-
+  addAudioByURL: (formData: FormData) => {
     return request.post<Audio>('/user/audios/url', formData)
   },
 

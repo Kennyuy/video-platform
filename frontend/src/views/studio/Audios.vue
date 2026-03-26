@@ -1,178 +1,99 @@
 <template>
-  <div class="audios-page">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>我的音频</span>
-          <el-button type="primary" @click="$router.push('/studio/upload-audio')">
-            <el-icon><Plus /></el-icon>
-            上传音频
-          </el-button>
-        </div>
-      </template>
+  <div>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white">我的音频</h2>
+      <router-link to="/studio/upload-audio" class="btn-primary">上传音频</router-link>
+    </div>
 
-      <!-- 搜索和筛选 -->
-      <div class="filter-bar">
-        <el-input
-          v-model="searchQuery"
-          placeholder="搜索音频标题"
-          :prefix-icon="Search"
-          clearable
-          style="width: 300px"
-          @keyup.enter="loadAudios"
-        />
-        <el-button @click="loadAudios">搜索</el-button>
+    <div class="card">
+      <!-- Search & Filter -->
+      <div class="p-4 border-b border-gray-200 dark:border-slate-700 flex gap-2 flex-wrap">
+        <input v-model="searchQuery" @keyup.enter="loadAudios" type="text" placeholder="搜索..." class="input-field flex-1 min-w-[200px]" />
+        <select v-model="selectedStatus" @change="loadAudios" class="input-field w-32">
+          <option value="">全部状态</option>
+          <option value="published">已发布</option>
+          <option value="draft">草稿</option>
+          <option value="archived">已归档</option>
+        </select>
+        <select v-model="selectedVisibility" @change="loadAudios" class="input-field w-32">
+          <option value="">全部可见性</option>
+          <option value="public">公开</option>
+          <option value="private">私密</option>
+        </select>
+        <button @click="loadAudios" class="btn-primary">搜索</button>
       </div>
 
-      <!-- 音频列表 -->
-      <el-table :data="audios" v-loading="loading" stripe>
-        <el-table-column label="封面" width="100">
-          <template #default="{ row }">
-            <div class="audio-cover">
-              <img v-if="row.cover_url" :src="getFullUrl(row.cover_url)" :alt="row.title" />
-              <div v-else class="no-cover">
-                <el-icon><Headset /></el-icon>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="title" label="标题" min-width="200" />
-        <el-table-column label="播放量" width="100">
-          <template #default="{ row }">
-            {{ formatNumber(row.plays) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="互动" width="150">
-          <template #default="{ row }">
-            <div class="interaction-info">
-              <span><el-icon><Pointer /></el-icon> {{ row.likes }}</span>
-              <span><el-icon><Coin /></el-icon> {{ row.coins }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="权限" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.visibility === 'public' ? 'success' : 'info'" size="small">
-              {{ row.visibility === 'public' ? '公开' : '私密' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="上传时间" width="120">
-          <template #default="{ row }">
-            {{ formatDate(row.created_at) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="viewAudio(row.id)">
-              查看
-            </el-button>
-            <el-button type="danger" link @click="deleteAudio(row)">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="total"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next"
-          @current-change="loadAudios"
-          @size-change="loadAudios"
-        />
-      </div>
-    </el-card>
+      <!-- Table -->
+      <table class="w-full">
+        <thead class="bg-gray-100 dark:bg-slate-800">
+          <tr>
+            <th class="px-6 py-3 text-left text-sm font-semibold">标题</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold">状态</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold">可见性</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold">播放量</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold">操作</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
+          <tr v-for="audio in audios" :key="audio.id" class="hover:bg-gray-50 dark:hover:bg-slate-800">
+            <td class="px-6 py-4 text-sm">{{ audio.title }}</td>
+            <td class="px-6 py-4 text-sm">
+              <span :class="['px-2 py-1 rounded text-xs font-semibold', audio.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200']">
+                {{ audio.status === 'published' ? '已发布' : audio.status }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm">
+              <span :class="['px-2 py-1 rounded text-xs font-semibold', audio.visibility === 'public' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200']">
+                {{ audio.visibility === 'public' ? '公开' : '私密' }}
+              </span>
+            </td>
+            <td class="px-6 py-4 text-sm">{{ audio.plays }}</td>
+            <td class="px-6 py-4 text-sm space-x-2">
+              <button @click="editAudio(audio.id)" class="text-blue-600 hover:text-blue-700">编辑</button>
+              <button @click="deleteAudio(audio.id)" class="text-red-600 hover:text-red-700">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Search, Headset, Pointer, Coin } from '@element-plus/icons-vue'
 import { userAudioApi } from '@/api'
-import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Audio } from '@/types'
 
 const router = useRouter()
-
 const audios = ref<Audio[]>([])
-const loading = ref(false)
 const searchQuery = ref('')
-const currentPage = ref(1)
-const pageSize = ref(10)
-const total = ref(0)
+const selectedStatus = ref('')
+const selectedVisibility = ref('')
 
-// 获取完整的资源 URL
-const getFullUrl = (url: string | undefined) => {
-  if (!url) return ''
-  if (url.startsWith('http')) return url
-  return url
-}
-
-// 格式化数字
-const formatNumber = (num: number): string => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + '万'
-  }
-  return num.toString()
-}
-
-// 格式化日期
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN')
-}
-
-// 加载音频列表
 const loadAudios = async () => {
-  loading.value = true
   try {
-    const data = await userAudioApi.getMyAudios({
-      page: currentPage.value,
-      page_size: pageSize.value,
-      search: searchQuery.value || undefined
-    })
-    audios.value = data
-    total.value = data.length // 如果后端返回总数，使用 total
+    const params: any = { page: 1, page_size: 50 }
+    if (searchQuery.value) params.search = searchQuery.value
+    if (selectedStatus.value) params.status = selectedStatus.value
+    if (selectedVisibility.value) params.visibility = selectedVisibility.value
+    audios.value = await userAudioApi.getMyAudios(params)
   } catch (error) {
     console.error('加载音频失败', error)
-    ElMessage.error('加载音频失败')
-  } finally {
-    loading.value = false
   }
 }
 
-// 查看音频
-const viewAudio = (id: number) => {
-  router.push(`/audio/${id}`)
+const editAudio = (id: number) => {
+  router.push(`/studio/audios/${id}/edit`)
 }
 
-// 删除音频
-const deleteAudio = async (audio: Audio) => {
+const deleteAudio = async (id: number) => {
+  if (!confirm('确定删除？')) return
   try {
-    await ElMessageBox.confirm(
-      `确定要删除音频《${audio.title}》吗？`,
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-
-    await userAudioApi.deleteAudio(audio.id)
-    ElMessage.success('删除成功')
+    await userAudioApi.deleteAudio(id)
     loadAudios()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('删除失败', error)
-      ElMessage.error(error.response?.data?.detail || '删除失败')
-    }
+  } catch (error) {
+    console.error('删除失败', error)
   }
 }
 
@@ -180,60 +101,3 @@ onMounted(() => {
   loadAudios()
 })
 </script>
-
-<style scoped lang="scss">
-.audios-page {
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .filter-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .audio-cover {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .no-cover {
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 24px;
-    }
-  }
-
-  .interaction-info {
-    display: flex;
-    gap: 8px;
-    font-size: 12px;
-    color: #666;
-
-    span {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-  }
-
-  .pagination {
-    margin-top: 20px;
-    display: flex;
-    justify-content: center;
-  }
-}
-</style>

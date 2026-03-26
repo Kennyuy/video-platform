@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { userApi } from '@/api'
 import type { User, LoginResponse } from '@/types'
-import { ElMessage } from 'element-plus'
+import toast from '@/utils/toast'
 
 export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
@@ -33,9 +33,9 @@ export const useUserStore = defineStore('user', () => {
 
       // 显示每日登录奖励提示
       if (res.daily_login_reward && res.coins_earned > 0) {
-        ElMessage.success(`登录成功！获得 ${res.coins_earned} 个硬币奖励`)
+        console.log(`登录成功！获得 ${res.coins_earned} 个硬币奖励`)
       } else {
-        ElMessage.success('登录成功')
+        console.log('登录成功')
       }
 
       return { success: true, dailyLoginReward: res.daily_login_reward, coinsEarned: res.coins_earned }
@@ -49,7 +49,7 @@ export const useUserStore = defineStore('user', () => {
   const register = async (username: string, email: string, password: string) => {
     try {
       await userApi.register(username, email, password)
-      ElMessage.success('注册成功，请登录')
+      toast.success('注册成功，请登录')
       return true
     } catch (error) {
       console.error('注册失败', error)
@@ -63,7 +63,7 @@ export const useUserStore = defineStore('user', () => {
     user.value = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    ElMessage.success('已退出登录')
+    toast.success('已退出登录')
   }
 
   // 更新用户硬币余额

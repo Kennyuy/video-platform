@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models import UserRole, VideoStatus, VideoSource, VideoVisibility, AudioStatus, AudioSource, AudioVisibility
@@ -30,14 +30,14 @@ class UserResponse(UserBase):
     coins: int = 0
     created_at: datetime
 
-    @validator('role', pre=True)
+    @field_validator('role', mode='before')
     def convert_role(cls, v):
         if isinstance(v, UserRole):
             return v.value
         return v
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserLoginResponse(BaseModel):
@@ -74,7 +74,7 @@ class CategoryResponse(CategoryBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # 视频相关
@@ -114,14 +114,14 @@ class VideoResponse(VideoBase):
     status: str
     created_at: datetime
 
-    @validator('video_source', 'status', 'visibility', pre=True)
+    @field_validator('video_source', 'status', 'visibility', mode='before')
     def convert_enum(cls, v):
         if hasattr(v, 'value'):
             return v.value
         return v
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class VideoListResponse(BaseModel):
@@ -136,14 +136,14 @@ class VideoListResponse(BaseModel):
     visibility: str
     created_at: datetime
 
-    @validator('visibility', pre=True)
+    @field_validator('visibility', mode='before')
     def convert_visibility(cls, v):
         if hasattr(v, 'value'):
             return v.value
         return v
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # 评论相关
@@ -163,7 +163,7 @@ class CommentResponse(CommentBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # 视频互动相关
@@ -190,7 +190,7 @@ class UserInteractionResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # 通用响应
@@ -242,14 +242,14 @@ class AudioResponse(AudioBase):
     status: str
     created_at: datetime
 
-    @validator('audio_source', 'status', 'visibility', pre=True)
+    @field_validator('audio_source', 'status', 'visibility', mode='before')
     def convert_enum(cls, v):
         if hasattr(v, 'value'):
             return v.value
         return v
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AudioListResponse(BaseModel):
@@ -264,14 +264,14 @@ class AudioListResponse(BaseModel):
     visibility: str
     created_at: datetime
 
-    @validator('visibility', pre=True)
+    @field_validator('visibility', mode='before')
     def convert_visibility(cls, v):
         if hasattr(v, 'value'):
             return v.value
         return v
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # 音频互动相关

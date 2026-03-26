@@ -1,5 +1,7 @@
 import os
 import uuid
+import subprocess
+import json
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
 from sqlalchemy.orm import Session
@@ -12,6 +14,26 @@ import aiofiles
 from datetime import datetime
 
 router = APIRouter(prefix="/api/admin/videos", tags=["管理员-视频"])
+
+
+def get_video_duration(file_path: str) -> int:
+    """使用 ffprobe 获取视频时长（秒）"""
+    try:
+        result = subprocess.run(
+            [
+                'ffprobe', '-v', 'quiet', '-print_format', 'json',
+                '-show_format', '-show_streams', file_path
+            ],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            duration = float(data.get('format', {}).get('duration', 0))
+            return int(duration)
+    except Exception as e:
+        print(f"获取视频时长失败: {e}")
+    return 0
 
 
 async def save_upload_file(upload_file: UploadFile, directory: str, filename: Optional[str] = None) -> str:
@@ -66,6 +88,10 @@ async def upload_video(
     # 保存视频文件
     video_url = await save_upload_file(video_file, os.path.join(settings.UPLOAD_DIR, "videos"))
 
+    # 获取视频时长
+    video_file_path = os.path.join(settings.UPLOAD_DIR, "videos", os.path.basename(video_url))
+    duration = get_video_duration(video_file_path)
+
     # 保存封面文件（如果有）
     cover_url = None
     if cover_file:
@@ -96,7 +122,8 @@ async def upload_video(
         category_id=category_id,
         uploader_id=current_user.id,
         visibility=VideoVisibility(visibility) if visibility in [VideoVisibility.PUBLIC.value, VideoVisibility.PRIVATE.value] else VideoVisibility.PUBLIC,
-        status=VideoStatus.PUBLISHED
+        status=VideoStatus.PUBLISHED,
+        duration=duration
     )
 
     db.add(video)

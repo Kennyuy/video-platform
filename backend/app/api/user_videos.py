@@ -1,5 +1,7 @@
 import os
 import uuid
+import subprocess
+import json
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
 from sqlalchemy.orm import Session
@@ -11,6 +13,26 @@ from app.config import settings
 import aiofiles
 
 router = APIRouter(prefix="/api/user/videos", tags=["用户-视频管理"])
+
+
+def get_video_duration(file_path: str) -> int:
+    """使用 ffprobe 获取视频时长（秒）"""
+    try:
+        result = subprocess.run(
+            [
+                'ffprobe', '-v', 'quiet', '-print_format', 'json',
+                '-show_format', '-show_streams', file_path
+            ],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            duration = float(data.get('format', {}).get('duration', 0))
+            return int(duration)
+    except Exception as e:
+        print(f"获取视频时长失败: {e}")
+    return 0
 
 
 async def save_upload_file(upload_file: UploadFile, directory: str, filename: Optional[str] = None) -> str:
@@ -72,6 +94,10 @@ async def upload_video(
     # 保存视频文件
     video_url = await save_upload_file(video_file, os.path.join(settings.UPLOAD_DIR, "videos"))
 
+    # 获取视频时长
+    video_file_path = os.path.join(settings.UPLOAD_DIR, "videos", os.path.basename(video_url))
+    duration = get_video_duration(video_file_path)
+
     # 保存封面文件（如果有）
     cover_url = None
     if cover_file:
@@ -102,7 +128,8 @@ async def upload_video(
         category_id=category_id,
         uploader_id=current_user.id,
         visibility=VideoVisibility(visibility),
-        status=VideoStatus.PUBLISHED
+        status=VideoStatus.PUBLISHED,
+        duration=duration
     )
 
     db.add(video)
@@ -119,6 +146,7 @@ async def add_video_by_url(
     description: Optional[str] = Form(None),
     category_id: Optional[int] = Form(None),
     cover_url: Optional[str] = Form(None),
+    cover_file: Optional[UploadFile] = File(None),
     visibility: str = Form("public"),  # public 或 private
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -140,11 +168,22 @@ async def add_video_by_url(
                 detail="分类不存在"
             )
 
+    # 处理封面文件上传
+    final_cover_url = cover_url
+    if cover_file:
+        cover_extension = cover_file.filename.split('.')[-1].lower()
+        if cover_extension not in settings.allowed_image_extensions_list:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"不支持的图片类型。支持的类型: {', '.join(settings.allowed_image_extensions_list)}"
+            )
+        final_cover_url = await save_upload_file(cover_file, os.path.join(settings.UPLOAD_DIR, "covers"))
+
     # 创建视频记录
     video = Video(
         title=title,
         description=description,
-        cover_url=cover_url,
+        cover_url=final_cover_url,
         video_url=video_url,
         video_source=VideoSource.URL,
         category_id=category_id,
@@ -165,6 +204,7 @@ async def get_my_videos(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
+    visibility: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -175,6 +215,10 @@ async def get_my_videos(
     # 状态筛选
     if status:
         query = query.filter(Video.status == status)
+
+    # 可见性筛选
+    if visibility:
+        query = query.filter(Video.visibility == visibility)
 
     # 搜索标题
     if search:
@@ -207,6 +251,7 @@ async def update_my_video(
     description: Optional[str] = Form(None),
     category_id: Optional[int] = Form(None),
     cover_url: Optional[str] = Form(None),
+    cover_file: Optional[UploadFile] = File(None),
     status: Optional[str] = Form(None),
     visibility: Optional[str] = Form(None),  # public 或 private
     current_user: User = Depends(get_current_user),
@@ -233,8 +278,19 @@ async def update_my_video(
                 detail="分类不存在"
             )
         video.category_id = category_id
-    if cover_url is not None:
+
+    # 处理封面
+    if cover_file:
+        cover_extension = cover_file.filename.split('.')[-1].lower()
+        if cover_extension not in settings.allowed_image_extensions_list:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"不支持的图片类型。支持的类型: {', '.join(settings.allowed_image_extensions_list)}"
+            )
+        video.cover_url = await save_upload_file(cover_file, os.path.join(settings.UPLOAD_DIR, "covers"))
+    elif cover_url is not None:
         video.cover_url = cover_url
+
     if status is not None:
         # 验证状态值
         if status not in [VideoStatus.DRAFT.value, VideoStatus.PUBLISHED.value, VideoStatus.ARCHIVED.value]:

@@ -86,6 +86,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '稿件管理' }
       },
       {
+        path: 'videos/:id/edit',
+        name: 'StudioEditVideo',
+        component: () => import('@/views/studio/EditVideo.vue'),
+        meta: { title: '编辑视频' }
+      },
+      {
         path: 'upload',
         name: 'StudioUpload',
         component: () => import('@/views/studio/Upload.vue'),
@@ -96,6 +102,12 @@ const routes: RouteRecordRaw[] = [
         name: 'StudioAudios',
         component: () => import('@/views/studio/Audios.vue'),
         meta: { title: '音频管理' }
+      },
+      {
+        path: 'audios/:id/edit',
+        name: 'StudioEditAudio',
+        component: () => import('@/views/studio/EditAudio.vue'),
+        meta: { title: '编辑音频' }
       },
       {
         path: 'upload-audio',

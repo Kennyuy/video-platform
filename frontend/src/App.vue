@@ -1,14 +1,36 @@
 <template>
-  <el-config-provider :locale="zhCn">
+  <div :class="{ dark: isDark }">
     <router-view />
-  </el-config-provider>
+  </div>
 </template>
 
 <script setup lang="ts">
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import { ref, onMounted } from 'vue'
+
+const isDark = ref(false)
+
+onMounted(() => {
+  const saved = localStorage.getItem('theme')
+  if (saved === 'dark') {
+    isDark.value = true
+    document.documentElement.classList.add('dark')
+  }
+})
+
+// 暴露给全局使用
+window.toggleTheme = () => {
+  isDark.value = !isDark.value
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  }
+}
 </script>
 
-<style lang="scss">
+<style>
 * {
   margin: 0;
   padding: 0;
@@ -17,10 +39,10 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: #f6f7f8;
 }
 
 #app {
   min-height: 100vh;
 }
 </style>
+

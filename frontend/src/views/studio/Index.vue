@@ -1,103 +1,36 @@
 <template>
-  <div class="studio-layout">
-    <!-- 侧边栏 -->
-    <aside class="studio-sidebar">
-      <div class="studio-logo">
-        <h2>创作中心</h2>
-      </div>
-      <el-menu
-        :default-active="$route.path"
-        router
-        class="studio-menu"
-      >
-        <el-sub-menu index="video">
-          <template #title>
-            <el-icon><VideoCamera /></el-icon>
-            <span>视频管理</span>
-          </template>
-          <el-menu-item index="/studio/upload">
-            <el-icon><UploadFilled /></el-icon>
-            <span>上传视频</span>
-          </el-menu-item>
-          <el-menu-item index="/studio/videos">
-            <el-icon><List /></el-icon>
-            <span>稿件管理</span>
-          </el-menu-item>
-        </el-sub-menu>
-        <el-sub-menu index="audio">
-          <template #title>
-            <el-icon><Headset /></el-icon>
-            <span>音频管理</span>
-          </template>
-          <el-menu-item index="/studio/upload-audio">
-            <el-icon><UploadFilled /></el-icon>
-            <span>上传音频</span>
-          </el-menu-item>
-          <el-menu-item index="/studio/audios">
-            <el-icon><List /></el-icon>
-            <span>音频列表</span>
-          </el-menu-item>
-        </el-sub-menu>
-      </el-menu>
+  <div class="min-h-screen bg-white dark:bg-slate-950">
+    <Navbar />
 
-      <div class="studio-back">
-        <el-button link @click="$router.push('/')">
-          <el-icon><ArrowLeft /></el-icon>
-          返回首页
-        </el-button>
-      </div>
-    </aside>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-8">
+        <!-- Sidebar -->
+        <div class="w-48">
+          <nav class="space-y-2">
+            <router-link to="/studio/videos" class="block px-4 py-2 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800">
+              视频管理
+            </router-link>
+            <router-link to="/studio/upload" class="block px-4 py-2 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800">
+              上传视频
+            </router-link>
+            <router-link to="/studio/audios" class="block px-4 py-2 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800">
+              音频管理
+            </router-link>
+            <router-link to="/studio/upload-audio" class="block px-4 py-2 rounded-lg text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800">
+              上传音频
+            </router-link>
+          </nav>
+        </div>
 
-    <!-- 主内容区 -->
-    <main class="studio-main">
-      <router-view />
-    </main>
+        <!-- Content -->
+        <div class="flex-1">
+          <router-view />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { UploadFilled, VideoCamera, Headset, List, ArrowLeft } from '@element-plus/icons-vue'
+import Navbar from '@/components/Navbar.vue'
 </script>
-
-<style scoped lang="scss">
-.studio-layout {
-  display: flex;
-  min-height: 100vh;
-  background: #f5f5f5;
-}
-
-.studio-sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #e0e0e0;
-  display: flex;
-  flex-direction: column;
-}
-
-.studio-logo {
-  padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
-
-  h2 {
-    margin: 0;
-    color: #00a1d6;
-    font-size: 20px;
-  }
-}
-
-.studio-menu {
-  flex: 1;
-  border-right: none;
-}
-
-.studio-back {
-  padding: 20px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.studio-main {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-}
-</style>
